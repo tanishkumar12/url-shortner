@@ -1,101 +1,136 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useTheme } from "next-themes";
+import { Sun, Moon } from "lucide-react";
+import { toast } from "react-toastify";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [url, setUrl] = useState("");
+  const [shortUrl, setShortUrl] = useState("");
+  const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme, setTheme } = useTheme();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("http://65.2.168.94:8000/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "An error occurred while shortening the URL."
+        );
+      }
+
+      setMessage(data.message);
+      setShortUrl(data.shortUrl);
+      toast.success("URL shortened successfully!");
+    } catch (error) {
+      if (error instanceof Error) {
+        setMessage(error.message);
+        toast.error(error.message);
+      } else {
+        setMessage("An unexpected error occurred. Please try again.");
+        toast.error("An unexpected error occurred. Please try again.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setUrl("");
+    setShortUrl("");
+    setMessage("");
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ease-in-out bg-secondary-100 dark:bg-secondary-900">
+      <button
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 p-2 rounded-full bg-secondary-200 dark:bg-secondary-800 text-secondary-800 dark:text-secondary-200 transition-colors duration-300 ease-in-out hover:bg-secondary-300 dark:hover:bg-secondary-700"
+        aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      >
+        {theme === "dark" ? (
+          <Sun className="w-6 h-6" />
+        ) : (
+          <Moon className="w-6 h-6" />
+        )}
+      </button>
+
+      <main className="w-full max-w-md">
+        <h1 className="text-4xl font-bold mb-8 text-center text-secondary-900 dark:text-secondary-100 transition-colors duration-300 ease-in-out">
+          URL Shortener
+        </h1>
+
+        {!shortUrl ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="url-input" className="sr-only">
+                Enter your URL
+              </label>
+              <input
+                id="url-input"
+                type="text"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="Enter your URL"
+                required
+                className="w-full px-4 py-3 rounded-lg border border-secondary-300 dark:border-secondary-700 bg-white dark:bg-secondary-800 text-secondary-900 dark:text-secondary-100 transition-colors duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold transition-colors duration-300 ease-in-out hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50"
+            >
+              {isLoading ? "Shortening..." : "Shorten URL"}
+            </button>
+          </form>
+        ) : (
+          <div className="space-y-4 animate-fade-in">
+            <p className="text-center text-secondary-800 dark:text-secondary-200 transition-colors duration-300 ease-in-out">
+              {message}
+            </p>
+            <a
+              href={shortUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full px-4 py-3 rounded-lg bg-primary-500 text-white font-semibold text-center transition-colors duration-300 ease-in-out hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+            >
+              {shortUrl}
+            </a>
+            <button
+              onClick={resetForm}
+              className="w-full px-4 py-3 rounded-lg bg-secondary-300 dark:bg-secondary-700 text-secondary-800 dark:text-secondary-200 font-semibold transition-colors duration-300 ease-in-out hover:bg-secondary-400 dark:hover:bg-secondary-600 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2"
+            >
+              Shorten New URL
+            </button>
+          </div>
+        )}
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
